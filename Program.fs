@@ -93,7 +93,7 @@ let dynamicSystemStep (dynamicSystem: DynamicSystem) (F: float) : (DynamicSystem
 
     // Update the velocity and position of the object by integrating the derivative using the time step T
     let newV = dynamicSystem.v + dv_dt * dynamicSystem.T
-    let newZ = dynamicSystem.z + dynamicSystem.v * dynamicSystem.T
+    let newZ = dynamicSystem.z + newV * dynamicSystem.T
 
     let newDynamicSystem =
         { dynamicSystem with
