@@ -170,8 +170,9 @@ let main (_args: string array) : int =
           v = 0.0
           z = 0.0 }
 
-    // TWrite the result to a file
-    use outputFile = new StreamWriter("data_PID_Fsharp.txt")
+    // Write the result to a file
+    use outputFile = new StreamWriter("data_PID_Fsharp.csv")
+    outputFile.WriteLine("Time,Command_1,Z_1,Step_1,Command_2,Z_2,Step_2")
 
     // Implement iteration using a while loop
     while (i < LENGTH) do
@@ -196,7 +197,7 @@ let main (_args: string array) : int =
         dynamicSystem2 <- newDynamicSystem2
         z2 <- newZ2
 
-        outputFile.WriteLine(sprintf "%.6f %.6f %.6f %.6f %.6f %.6f %.6f" t command1 z1 step1 command2 z2 step2)
+        outputFile.WriteLine(sprintf "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f" t command1 z1 step1 command2 z2 step2)
 
         // Increment the time and iteration counter
         t <- t + TIME_STEP
