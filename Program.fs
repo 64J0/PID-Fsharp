@@ -105,21 +105,19 @@ let dynamicSystemStep (dynamicSystem: DynamicSystem) (F: float) : (DynamicSystem
 [<EntryPoint>]
 let main (_args: string array) : int =
     // Current simulation time
-    let mutable t = 0.0
+    let t = 0.0
 
     // Iteration counter
-    let mutable i = 0
+    let i = 0
 
     // Setpoint and output of the first control loop
-    let mutable command1 = 0.0
-    let mutable z1 = 0.0
+    let z1 = 0.0
 
     // Setpoint and output of the second control loop
-    let mutable command2 = 0.0
-    let mutable z2 = 0.0
+    let z2 = 0.0
 
     // PID controller parameters for the first control loop
-    let mutable pid1: PID =
+    let pid1: PID =
         { Kp = 1.0
           Ki = 0.1
           Kd = 5.0
@@ -136,7 +134,7 @@ let main (_args: string array) : int =
           command_prev = 0.0 }
 
     // Object parameters for the first control loop
-    let mutable dynamicSystem1: DynamicSystem =
+    let dynamicSystem1: DynamicSystem =
         { m = 10.0
           k = 0.5
           F_max = 100.0
@@ -145,7 +143,7 @@ let main (_args: string array) : int =
           v = 0.0
           z = 0.0 }
 
-    let mutable pid2: PID =
+    let pid2: PID =
         { Kp = 1.8
           Ki = 0.3
           Kd = 7.0
@@ -161,7 +159,7 @@ let main (_args: string array) : int =
           command_sat_prev = 0.0
           command_prev = 0.0 }
 
-    let mutable dynamicSystem2: DynamicSystem =
+    let dynamicSystem2: DynamicSystem =
         { m = 10.0
           k = 0.5
           F_max = 100.0
@@ -174,34 +172,43 @@ let main (_args: string array) : int =
     use outputFile = new StreamWriter("data_PID_Fsharp.csv")
     outputFile.WriteLine("Time,Command_1,Z_1,Step_1,Command_2,Z_2,Step_2")
 
-    // Implement iteration using a while loop
-    while (i < LENGTH) do
-        // Change setpoint at t = 60 seconds
-        let step1, step2 = if (t < 60) then (100.0, 50.0) else (200.0, 150.0)
+    // Implement iteration using recursion
+    let rec iterateSimulation
+        (t: float)
+        (i: int)
+        (pidTuple: PID * PID)
+        (dynamicSystemTuple: DynamicSystem * DynamicSystem)
+        (zTuple: float * float)
+        =
+        if i >= LENGTH then
+            ()
+        else
+            let pid1, pid2 = pidTuple
+            let dynamicSystem1, dynamicSystem2 = dynamicSystemTuple
+            let z1, z2 = zTuple
 
-        // Execute the first control loop
-        let newPid1, newCommand1 = pidStep pid1 z1 step1
-        pid1 <- newPid1
-        command1 <- newCommand1
+            // Change setpoint at t = 60 seconds
+            let step1, step2 = if (t < 60) then (100.0, 50.0) else (200.0, 150.0)
 
-        let newDynamicSystem1, newZ1 = dynamicSystemStep dynamicSystem1 command1
-        dynamicSystem1 <- newDynamicSystem1
-        z1 <- newZ1
+            // Execute the first control loop
+            let newPid1, newCommand1 = pidStep pid1 z1 step1
+            let newDynamicSystem1, newZ1 = dynamicSystemStep dynamicSystem1 newCommand1
 
-        // Execute the second control loop
-        let newPid2, newCommand2 = pidStep pid2 z2 step2
-        pid2 <- newPid2
-        command2 <- newCommand2
+            // Execute the second control loop
+            let newPid2, newCommand2 = pidStep pid2 z2 step2
+            let newDynamicSystem2, newZ2 = dynamicSystemStep dynamicSystem2 newCommand2
 
-        let newDynamicSystem2, newZ2 = dynamicSystemStep dynamicSystem2 command2
-        dynamicSystem2 <- newDynamicSystem2
-        z2 <- newZ2
+            outputFile.WriteLine(
+                sprintf "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f" t newCommand1 newZ1 step1 newCommand2 newZ2 step2
+            )
 
-        outputFile.WriteLine(sprintf "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f" t command1 z1 step1 command2 z2 step2)
+            // Increment the time and iteration counter
+            let newT = t + TIME_STEP
+            let newI = i + 1
 
-        // Increment the time and iteration counter
-        t <- t + TIME_STEP
-        i <- i + 1
+            iterateSimulation (newT) (newI) (newPid1, newPid2) (newDynamicSystem1, newDynamicSystem2) (newZ1, newZ2)
+
+    iterateSimulation (t) (i) (pid1, pid2) (dynamicSystem1, dynamicSystem2) (z1, z2)
 
     outputFile.Flush()
     0
